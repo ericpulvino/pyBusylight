@@ -8,8 +8,7 @@ import sys
 
 def signal_handler(signal, frame):
     print('\nCaught CTRL+C turning off.')
-    halt_busylight=busylight()
-    halt_busylight.turn_off()
+    busylight().turn_off()
     sys.exit(0)
 signal.signal(signal.SIGINT, signal_handler)
 
