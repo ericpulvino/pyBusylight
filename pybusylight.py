@@ -1,5 +1,4 @@
-#!/usr/bin/python
-
+from color_constants import colors
 import usb.core
 import usb.util
 import signal
@@ -22,6 +21,7 @@ class busylight:
         self.blue = 255
         self.sound = 128
         self.volume = 0
+        self.valid_sounds=[128,136,144,152,160,168,176,184,192,216]
 
     def __connect_busylight__(self):
         dev = usb.core.find(idVendor=0x04d8, idProduct=0xf848)
@@ -49,24 +49,138 @@ class busylight:
 
     def __build_buff__(self):
         buff = ("\x10\x00%s%s%s\x00\x00%s\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\xff\xff\xff\xff\x04\xab"%(
-                   chr(self.red),
-                   chr(self.green),
-                   chr(self.blue),
+                   chr(degamma[self.red]),
+                   chr(degamma[self.green]),
+                   chr(degamma[self.blue]),
                    chr(int(self.sound)+int(self.volume))
                    )
                )
         return buff
 
-    def pulse(self):
+    def pulse(self,pulse_length=None,rgb=None,color=None,count=None):
+        if color:
+            self.set_color(color)
+        elif rgb:
+            self.set_rgb(rgb)
+
+        if count:
+            try:
+                count = int(count)
+            except:
+                print('Provided blink count is not an integer.')
+                exit(1)
+
+            
+        color_val=self.get_rgb()
+        red_activation=float(color_val[0])/float(255)
+        red_step=red_activation/32.0
+        red_value=red_activation
+        green_activation=float(color_val[1])/float(255)
+        green_step=green_activation/32.0
+        green_value=green_activation
+        blue_activation=float(color_val[2])/float(255)
+        blue_step=blue_activation/32.0
+        blue_value=blue_activation
+
+        current_count=0
         while True:
-            for i in range(0,256,8):
-                self.green = degamma[i] 
+            if count:
+                current_count += 1
+                if current_count > count: return
+            red_value,green_value,blue_value=(0,0,0)
+            for i in range(0,32):
+                red_value = red_value+red_step
+                green_value = green_value+green_step
+                blue_value = blue_value+blue_step
+                #print('red: %s green: %s blue: %s'%(int(round(red_value*255.0)),int(round(green_value*255.0)),int(round(blue_value*255.0))))
+                self.red,self.green,self.blue=(int(round(red_value*255.0)),int(round(green_value*255.0)),int(round(blue_value*255.0)))
                 self.send()
                 time.sleep(0.01)
-            for i in range(255,-1,-8):
-                self.green = degamma[i]
+            #print('top')
+            for i in range(31,-1,-1):
+                red_value = red_value-red_step
+                green_value = green_value-green_step
+                blue_value = blue_value-blue_step
+                #print('red: %s green: %s blue: %s'%(int(round(red_value*255.0)),int(round(green_value*255.0)),int(round(blue_value*255.0))))
+                self.red,self.green,self.blue=(int(round(red_value*255.0)),int(round(green_value*255.0)),int(round(blue_value*255.0)))
                 self.send()
                 time.sleep(0.01)
+            #print('bottom')
+
+    def available_colors(self):
+        all_colors=[]
+        for color in colors: all_colors.append((color,colors[color]))
+        return all_colors
+
+    def set_sound(self,sound=128,volume=0):
+        try:
+            if int(sound) in self.valid_sounds: self.sound=sound
+            else:
+                print('Sound is not a valid value %s.'%(self.valid_sounds))
+                exit(1)
+            if int(volume) in range(0,8): self.volume=volume
+            else:
+                print('Volume must be an integer from 0-7.')
+                exit(1)
+        except:
+            print('Sound or volume is not an integer.')
+            exit(1)
+
+    def set_rgb(self,rgb):
+        for i in range(0,3):
+            if rgb[i] >255 or rgb[i] < 0:
+                print('Bad RGB value.')
+                exit(1)
+        try:
+            self.red,self.green,self.blue=rgb
+        except:
+            print('Failed to collect RGB value.')
+            exit(1)
+
+    def set_color(self,color):
+        try:
+            self.set_rgb(colors[color])
+        except:
+            print('Invalid Color, see busylight.available_colors()')
+            exit(1)
+
+    def get_rgb(self):
+        return (self.red,self.green,self.blue)
+        
+
+    def blink(self,rgb=None,color=None,interval=0.5,count=None):
+        try:
+            interval = float(interval)
+        except:
+            print('Invalid interval value. Must be something which can be typed as a float.')
+            return
+
+        if count:
+            try:
+                count = int(count)
+            except:
+                print('Provided blink count is not an integer.')
+                exit(1)
+
+        if color:
+            self.set_color(color)
+        elif rgb:
+            self.set_rgb(rgb)
+
+        color_val=self.get_rgb()
+
+        current_count=0        
+        while True:
+            if count:
+                current_count += 1
+                if current_count > count: return
+            self.red,self.green,self.blue=color_val
+            self.send()
+            time.sleep(interval)
+            self.red,self.green,self.blue=(0,0,0)
+            self.send()
+            time.sleep(interval)
+
 
     def turn_off(self):
         self.red=0
@@ -77,8 +191,7 @@ class busylight:
         self.send()
 
     def send(self):
-        buff = self.__build_buff__()
-        self.ep.write(buff)
+        self.ep.write(self.__build_buff__())
 
 degamma = [
   0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -100,13 +213,13 @@ degamma = [
 ]
 
 sounds={"off":128,
-        "OpenOffice":136,
-        "Quiet":144,
-        "Funky":152,
-        "FairyTale":160,
-        "KuandoTrain":168,
-        "TelephoneNordic":176,
-        "TelephoneOriginal":184,
-        "TelephonePickMeUp":192,
-        "Buzz":216
+        "openoffice":136,
+        "quiet":144,
+        "funky":152,
+        "fairytale":160,
+        "kuandotrain":168,
+        "telephonenordic":176,
+        "telephoneoriginal":184,
+        "telephonepickmeup":192,
+        "buzz":216
         }

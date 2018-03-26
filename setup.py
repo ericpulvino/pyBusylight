@@ -1,13 +1,13 @@
 from setuptools import setup, find_packages
 from version import __VERSION__
+import os
 import io
 
-def read_contents(fname='README'):
+def read_contents(fname='README.md'):
     """read contents of readme into setup.py long_description field
     """
     return io.open(os.path.join(os.path.dirname(__file__),
                                 fname), encoding="utf-8").read()
-
 
 setup(
     name='pyBusylight',
@@ -19,8 +19,7 @@ setup(
     author_email='ericpulvino@gmail.com',
     install_requires=[
         'setuptools',
-        'pyusb',
-        'signal'
+        'pyusb'
     ],
     license='MIT',
     classifiers=[
@@ -43,7 +42,7 @@ setup(
     ],
     keywords='kuando busylight',
     project_urls={
-        'Documentation':'https://github.com/ericpulvino/pyBusylight/docs'
+        'Documentation':'https://github.com/ericpulvino/pyBusylight/docs',
         'Source':'https://github.com/ericpulvino/pyBusylight',
         'Tracker':'https://github.com/ericpulvino/pyBusylight/issues'
     },
