@@ -14,8 +14,9 @@ signal.signal(signal.SIGINT, signal_handler)
 
 class busylight:
 
-    def __init__(self):
+    def __init__(self,debug=False):
         self.ep = None 
+        self.debug = debug
         self.__connect_busylight__()
         self.red = 255
         self.green = 255
@@ -57,16 +58,8 @@ class busylight:
         buff += "0000"
         buff += '{:02X}'.format(int(self.sound)+int(self.volume))
         buff += "0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000ffffffff04ab"        
-        #buff = ("\x10\x00%s%s%s\x00\x00%s\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\xff\xff\xff\xff\x04\xab"%(
-        #           chr(degamma[self.red]),
-        #           chr(degamma[self.green]),
-        #           chr(degamma[self.blue]),
-        #           chr(int(self.sound)+int(self.volume))
-        #           )
-        #       )
-        print(buff)
+        if self.debug: print(buff)
         return binascii.unhexlify(buff)
-        #return buff
 
     def pulse(self,pulse_length=None,rgb=None,color=None,count=None):
         if color:
