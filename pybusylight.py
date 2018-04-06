@@ -1,4 +1,5 @@
 from color_constants import colors
+import binascii
 import usb.core
 import usb.util
 import signal
@@ -48,14 +49,24 @@ class busylight:
         assert self.ep is not None
 
     def __build_buff__(self):
-        buff = ("\x10\x00%s%s%s\x00\x00%s\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\xff\xff\xff\xff\x04\xab"%(
-                   chr(degamma[self.red]),
-                   chr(degamma[self.green]),
-                   chr(degamma[self.blue]),
-                   chr(int(self.sound)+int(self.volume))
-                   )
-               )
-        return buff
+        buff = "1"
+        buff += "000"
+        buff += '{:02X}'.format(degamma[self.red])
+        buff += '{:02X}'.format(degamma[self.green])
+        buff += '{:02X}'.format(degamma[self.blue])
+        buff += "0000"
+        buff += '{:02X}'.format(int(self.sound)+int(self.volume))
+        buff += "0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000ffffffff04ab"        
+        #buff = ("\x10\x00%s%s%s\x00\x00%s\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\xff\xff\xff\xff\x04\xab"%(
+        #           chr(degamma[self.red]),
+        #           chr(degamma[self.green]),
+        #           chr(degamma[self.blue]),
+        #           chr(int(self.sound)+int(self.volume))
+        #           )
+        #       )
+        print(buff)
+        return binascii.unhexlify(buff)
+        #return buff
 
     def pulse(self,pulse_length=None,rgb=None,color=None,count=None):
         if color:
