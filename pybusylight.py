@@ -78,13 +78,10 @@ class busylight:
         color_val=self.get_rgb()
         red_activation=float(color_val[0])/float(255)
         red_step=red_activation/32.0
-        red_value=red_activation
         green_activation=float(color_val[1])/float(255)
         green_step=green_activation/32.0
-        green_value=green_activation
         blue_activation=float(color_val[2])/float(255)
         blue_step=blue_activation/32.0
-        blue_value=blue_activation
 
         current_count=0
         while True:
