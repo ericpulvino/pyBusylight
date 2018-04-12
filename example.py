@@ -10,7 +10,7 @@ except ValueError:
     print('\nBusylight not found, is it connected?...')
     exit(1)
 
-print('\nSend basic white for 5 seconds.')
+print('\nSend the default color (white) for 5 seconds.')
 bl.send()
 time.sleep(5)
 
@@ -23,7 +23,7 @@ bl.set_rgb((0,255,0))
 bl.send()
 time.sleep(5)
 
-print('\nSet the light to a named color (SALMON).')
+print('\nSet the light to a named color "salmon".')
 bl.set_color('salmon')
 bl.send()
 time.sleep(5)
@@ -59,8 +59,8 @@ for sound in sounds:
     time.sleep(5)
     bl.turn_off()
 
-print('\nSetting a color and letting the color time-out automatically (after 30 seconds).')
-bl.set_color('mauve')
+print('\nSetting a named color "slateblue" letting the color time-out automatically (after 30 seconds).')
+bl.set_color('slateblue')
 bl.send()
 
 exit(0)
