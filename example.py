@@ -28,6 +28,8 @@ bl.set_color('salmon')
 bl.send()
 time.sleep(5)
 
+print('List out all the available named colors...')
+print(busylight.available_colors())
 rgb_value=bl.get_rgb()
 print('\nGet the RGB value for the color that is currently set --> %s%s%s'%(rgb_value[0],rgb_value[1],rgb_value[2]))
 
