@@ -8,16 +8,19 @@ pyBusylight makes use of PyUSB to control Busylight and used extensive cues from
 * signal
 * pyusb
 
-_Note: Pyusb requires at least one of the three supported backends to be installed. Install a backend like so._
+_Note: Pyusb requires at least one of the three supported backends to be installed._
 
-    If you're on a MAC you can install libusb via:
+If you're on a MAC you can install libusb via:
+
 ```
         $ brew install libusb
 ```
-    On Windows you can follow the info here.
+
+On Windows you can follow the info here.
         https://github.com/walac/pyusb/blob/master/README.rst#installing
 
-    On Ubuntu 16.04/18.04
+On Ubuntu 16.04/18.04
+
 ```
     sudo apt-get install libusb-1.0-0 """)
 ```
@@ -37,3 +40,4 @@ bl.send()
 ```
 sudo python3 ./example.py
 ```
+See the video here --> https://youtu.be/IsQf0T-VDqI
