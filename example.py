@@ -1,11 +1,9 @@
-#!/usr/bin/env python
 import time
-from pybusylight import busylight
-from pybusylight import sounds
+from pybusylight import pybusylight
 
 try:
     print('Connect to the Busylight...')
-    bl=busylight()
+    bl=pybusylight.busylight()
 except ValueError:
     print('\nBusylight not found, is it connected?...')
     exit(1)
@@ -29,9 +27,10 @@ bl.send()
 time.sleep(5)
 
 print('List out all the available named colors...')
+time.sleep(3)
 print(bl.available_colors())
 rgb_value=bl.get_rgb()
-print('\nGet the RGB value for the color that is currently set --> %s%s%s'%(rgb_value[0],rgb_value[1],rgb_value[2]))
+print('\nGet the RGB value for the color that is currently set --> R:%s,G:%s,B:%s'%(rgb_value[0],rgb_value[1],rgb_value[2]))
 
 print('\nBlink the light 10 times with whatever color value is currently set using the default interval of 0.5 seconds.')
 bl.blink(count=10)
@@ -52,9 +51,9 @@ print('\nPulse the light 5 times with an RGB color (0,0,255).')
 bl.pulse(count=5,rgb=(0,0,255))
 
 print('\nPlaying each of the supported sounds for 5 seconds...')
-for sound in sounds:
+for sound in pybusylight.sounds:
     print('\n        playing the "%s" at volume level 2 of 7'%sound)
-    bl.set_sound(sound=sounds[sound],volume=2)
+    bl.set_sound(sound=pybusylight.sounds[sound],volume=2)
     bl.send()
     time.sleep(5)
     bl.turn_off()

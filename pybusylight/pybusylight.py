@@ -1,4 +1,4 @@
-from color_constants import colors
+from pybusylight.color_constants import colors
 import binascii
 import usb.core
 import usb.util
@@ -26,7 +26,19 @@ class busylight:
         self.valid_sounds=[128,136,144,152,160,168,176,184,192,216]
 
     def __connect_busylight__(self):
-        dev = usb.core.find(idVendor=0x04d8, idProduct=0xf848)
+        try:
+            dev = usb.core.find(idVendor=0x04d8, idProduct=0xf848)
+        except NoBackendError:
+            print("""ERROR: PyUSB needs at least one of the supported backends installed.
+    If you're on a MAC you can install libusb via:
+        $ brew install libusb
+
+    On Windows you can follow the info here.
+        https://github.com/walac/pyusb/blob/master/README.rst#installing
+
+    On Ubuntu 16.04/18.04
+    sudo apt-get install libusb-1.0-0 """)
+            exit(1)
 
         if dev is None: raise ValueError('Device not found')
         dev.reset()

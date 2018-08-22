@@ -26,11 +26,11 @@ setup(
         #   3 - Alpha
         #   4 - Beta
         #   5 - Production/Stable
-        'Development Status :: 3 - Alpha',
+        'Development Status :: 4 - Beta',
     
         # Indicate who your project is intended for
         'Intended Audience :: Developers',
-        'Topic :: Software Development :: Build Tools',
+        'Topic :: System :: Hardware :: Hardware Drivers',
     
         # Pick your license as you wish (should match "license" above)
          'License :: OSI Approved :: MIT License',
@@ -39,6 +39,8 @@ setup(
         # that you indicate whether you support Python 2, Python 3 or both.
         'Programming Language :: Python :: 2',
         'Programming Language :: Python :: 2.7',
+        'Programming Language :: Python :: 3',
+        'Programming Language :: Python :: 3.6',
     ],
     keywords='kuando busylight',
     project_urls={
