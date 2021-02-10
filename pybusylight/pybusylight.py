@@ -6,6 +6,7 @@ import signal
 import time
 import sys
 import struct
+import threading
 
 def signal_handler(signal, frame):
     print('\nCaught CTRL+C turning off.')
@@ -25,6 +26,7 @@ class busylight:
         self.sound = 0
         self.volume = 0
         self.max_valid_sound = 15
+        self.lock = threading.Lock()
 
     def __connect_busylight__(self, usb_vendor, usb_product):
         try:
@@ -70,7 +72,8 @@ class busylight:
 
         assert self.ep is not None
 
-    def __build_buff__(self):
+        
+    def __build_buff__(self, keep_alive=False):
 
         # The protocol can be found here:
         # https://github.com/porsager/busylight/blob/master/Busylight.API.rev.2.2.-.22052015.pdf
@@ -79,53 +82,54 @@ class busylight:
         byte_buf = bytearray(64)
 
         # command
-        byte_buf[0] = 0b00010000 # 0b00010aaa: Jump to step aaa when the step is executed.
+        if keep_alive:
+            byte_buf[0] = 0b10001111 # 0b1000xxxx: Keep alive signal = no change. xxxx = timeout in seconds
+        else:
+            byte_buf[0] = 0b00010000 # 0b00010aaa: Jump to step aaa when the step is executed.
         
-        # repeat
-        byte_buf[1] = 1 # Execute this step for repeat number of times [1..255] 
+            # repeat
+            byte_buf[1] = 0 # Execute this step for repeat number of times [1..255] 
         
-        # color
-        byte_buf[2] = degamma[self.red]
-        byte_buf[3] = degamma[self.green]
-        byte_buf[4] = degamma[self.blue]
+            # color
+            byte_buf[2] = degamma[self.red]
+            byte_buf[3] = degamma[self.green]
+            byte_buf[4] = degamma[self.blue]
 
-        # on_time
-        byte_buf[5] = 255 # ON time in 0.1 second steps [0..255] <=> 0-25.5sec
+            # on_time
+            byte_buf[5] = 0 # ON time in 0.1 second steps [0..255] <=> 0-25.5sec
 
-        # off time
-        byte_buf[6] = 255 # OFF time in 0.1 second steps [0..255] <=> 0-25.5sec
+            # off time
+            byte_buf[6] = 0 # OFF time in 0.1 second steps [0..255] <=> 0-25.5sec
 
-        # ringtone
-        # bitwise interpretation: 0bcbbbbeee
-        # c: on/off
-        # bbbb: sound
-        # eee: volume (0=stop, 111=highest)
-        byte_buf[7] = 0 
-
+            # ringtone
+            # bitwise interpretation: 0bcbbbbeee
+            # c: on/off
+            # bbbb: sound
+            # eee: volume (0=stop, 111=highest)
         
-        byte_buf[7] |= 128 # always change audio
+            byte_buf[7] = 128 # always change audio
         
-        if self.sound:        
-            byte_buf[7] |= ((self.sound & self.max_valid_sound) << 3)
-            byte_buf[7] |= self.volume & 7
+            if self.sound:        
+                byte_buf[7] |= ((self.sound & self.max_valid_sound) << 3)
+                byte_buf[7] |= self.volume & 7
 
 
-        # It is possible to repeat command definitions, but we leave the other
-        # fields blank here.
+            # It is possible to repeat command definitions, but we leave the other
+            # fields blank here.
 
-        # sensitivity
-        byte_buf[56] = 16 # 0=high sensitivity 31=low sensitivity
+            # sensitivity
+            byte_buf[56] = 16 # 0=high sensitivity 31=low sensitivity
 
-        # timeout in seconds (1-30)
-        byte_buf[57] = 5
+            # timeout in seconds (1-30)
+            byte_buf[57] = 5
 
-        # triggertime in milliseconds (1-250)
-        byte_buf[58] = 1
+            # triggertime in milliseconds (1-250)
+            byte_buf[58] = 1
 
-        # unused
-        byte_buf[59] = 0xff
-        byte_buf[60] = 0xff
-        byte_buf[61] = 0xff
+            # unused
+            byte_buf[59] = 0xff
+            byte_buf[60] = 0xff
+            byte_buf[61] = 0xff
         
         
         # calculate check sum
@@ -269,7 +273,18 @@ class busylight:
         self.send()
 
     def send(self):
-        self.ep.write(self.__build_buff__())
+        with self.lock:
+            self.ep.write(self.__build_buff__())
+
+    def _keep_alive_thread(self):
+        while True:
+            time.sleep(10)
+            with self.lock:
+                self.ep.write(self.__build_buff__(keep_alive=True))
+        
+    def keep_alive(self):
+        t = threading.Thread(target=self._keep_alive_thread)
+        t.start()
 
 degamma = [
   0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -300,5 +315,5 @@ sounds={"off": 0,
         "telephoneoriginal": 7,
         "telephonepickmeup": 8,
         "unknown": 9,
-        "buzz": 11
+        "buzz": 11        
         }
