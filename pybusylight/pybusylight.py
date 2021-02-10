@@ -5,6 +5,7 @@ import usb.util
 import signal
 import time
 import sys
+import struct
 
 def signal_handler(signal, frame):
     print('\nCaught CTRL+C turning off.')
@@ -14,20 +15,28 @@ signal.signal(signal.SIGINT, signal_handler)
 
 class busylight:
 
-    def __init__(self,debug=False):
+    def __init__(self, debug=False, usb_vendor=None, usb_product=None):
         self.ep = None 
         self.debug = debug
-        self.__connect_busylight__()
+        self.__connect_busylight__(usb_vendor, usb_product)
         self.red = 255
         self.green = 255
         self.blue = 255
-        self.sound = 128
+        self.sound = 0
         self.volume = 0
-        self.valid_sounds=[128,136,144,152,160,168,176,184,192,216]
+        self.max_valid_sound = 15
 
-    def __connect_busylight__(self):
+    def __connect_busylight__(self, usb_vendor, usb_product):
         try:
-            dev = usb.core.find(idVendor=0x04d8, idProduct=0xf848)
+            if usb_vendor is None or usb_product is None: # probe mode
+                # Device IDs taken from https://github.com/ericpulvino/pyBusylight/issues/2
+                for i in [0x3bca, 0x3bcd, 0x3bcb, 0x3bcc, 0x3bc0, 0xf848]:
+                    dev = usb.core.find(idVendor=0x27bb, idProduct=i)
+                    if dev:
+                        break
+            else:
+                dev = usb.core.find(idVendor=usb_vendor, idProduct=usb_product)
+                
         except NoBackendError:
             print("""ERROR: PyUSB needs at least one of the supported backends installed.
     If you're on a MAC you can install libusb via:
@@ -62,16 +71,72 @@ class busylight:
         assert self.ep is not None
 
     def __build_buff__(self):
-        buff = "1"
-        buff += "000"
-        buff += '{:02X}'.format(degamma[self.red])
-        buff += '{:02X}'.format(degamma[self.green])
-        buff += '{:02X}'.format(degamma[self.blue])
-        buff += "0000"
-        buff += '{:02X}'.format(int(self.sound)+int(self.volume))
-        buff += "0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000ffffffff04ab"        
-        if self.debug: print(buff)
-        return binascii.unhexlify(buff)
+
+        # The protocol can be found here:
+        # https://github.com/porsager/busylight/blob/master/Busylight.API.rev.2.2.-.22052015.pdf
+        
+        # Start with an empty array
+        byte_buf = bytearray(64)
+
+        # command
+        byte_buf[0] = 0b00010000 # 0b00010aaa: Jump to step aaa when the step is executed.
+        
+        # repeat
+        byte_buf[1] = 1 # Execute this step for repeat number of times [1..255] 
+        
+        # color
+        byte_buf[2] = degamma[self.red]
+        byte_buf[3] = degamma[self.green]
+        byte_buf[4] = degamma[self.blue]
+
+        # on_time
+        byte_buf[5] = 255 # ON time in 0.1 second steps [0..255] <=> 0-25.5sec
+
+        # off time
+        byte_buf[6] = 255 # OFF time in 0.1 second steps [0..255] <=> 0-25.5sec
+
+        # ringtone
+        # bitwise interpretation: 0bcbbbbeee
+        # c: on/off
+        # bbbb: sound
+        # eee: volume (0=stop, 111=highest)
+        byte_buf[7] = 0 
+
+        
+        byte_buf[7] |= 128 # always change audio
+        
+        if self.sound:        
+            byte_buf[7] |= ((self.sound & self.max_valid_sound) << 3)
+            byte_buf[7] |= self.volume & 7
+
+
+        # It is possible to repeat command definitions, but we leave the other
+        # fields blank here.
+
+        # sensitivity
+        byte_buf[56] = 16 # 0=high sensitivity 31=low sensitivity
+
+        # timeout in seconds (1-30)
+        byte_buf[57] = 5
+
+        # triggertime in milliseconds (1-250)
+        byte_buf[58] = 1
+
+        # unused
+        byte_buf[59] = 0xff
+        byte_buf[60] = 0xff
+        byte_buf[61] = 0xff
+        
+        
+        # calculate check sum
+        _sum = sum(byte_buf)            
+        byte_buf[62] = _sum >> 8
+        byte_buf[63] = _sum & 255
+
+        if self.debug:
+            print(byte_buf)
+        
+        return byte_buf
 
     def pulse(self,pulse_length=None,rgb=None,color=None,count=None):
         if color:
@@ -125,11 +190,11 @@ class busylight:
         for color in colors: all_colors.append((color,colors[color]))
         return all_colors
 
-    def set_sound(self,sound=128,volume=0):
+    def set_sound(self, sound=1, volume=0):
         try:
-            if int(sound) in self.valid_sounds: self.sound=sound
+            if int(sound) <= self.max_valid_sound: self.sound=sound
             else:
-                print('Sound is not a valid value %s.'%(self.valid_sounds))
+                print('Sound is not a valid value (0<=sound<=%d).'%(self.max_valid_sound))
                 exit(1)
             if int(volume) in range(0,8): self.volume=volume
             else:
@@ -199,7 +264,7 @@ class busylight:
         self.red=0
         self.green=0
         self.blue=0
-        self.sound=128
+        self.sound=0
         self.volume=0
         self.send()
 
@@ -225,14 +290,15 @@ degamma = [
   222,224,227,229,231,233,235,237,239,241,244,246,248,250,252,255
 ]
 
-sounds={"off":128,
-        "openoffice":136,
-        "quiet":144,
-        "funky":152,
-        "fairytale":160,
-        "kuandotrain":168,
-        "telephonenordic":176,
-        "telephoneoriginal":184,
-        "telephonepickmeup":192,
-        "buzz":216
+sounds={"off": 0,
+        "openoffice": 1,
+        "quiet": 2,
+        "funky": 3,
+        "fairytale": 4,
+        "kuandotrain": 5,
+        "telephonenordic": 6,
+        "telephoneoriginal": 7,
+        "telephonepickmeup": 8,
+        "unknown": 9,
+        "buzz": 11
         }
