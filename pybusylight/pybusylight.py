@@ -19,6 +19,8 @@ class busylight:
     def __init__(self, debug=False, usb_vendor=None, usb_product=None):
         self.ep = None 
         self.debug = debug
+        self.usb_vendor = usb_vendor
+        self.usb_product = usb_product
         self.__connect_busylight__(usb_vendor, usb_product)
         self.red = 255
         self.green = 255
@@ -280,7 +282,11 @@ class busylight:
         while True:
             time.sleep(10)
             with self.lock:
-                self.ep.write(self.__build_buff__(keep_alive=True))
+                try:
+                    self.ep.write(self.__build_buff__(keep_alive=True))
+                except usb.core.USBTimeoutError:
+                    self.__connect_busylight__(self.usb_vendor, self.usb_product)
+                    pass
         
     def keep_alive(self):
         t = threading.Thread(target=self._keep_alive_thread)
