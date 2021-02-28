@@ -43,7 +43,7 @@ sudo python3 ./example.py
 See the video here --> https://youtu.be/IsQf0T-VDqI
 
 
-# Adjust Udev rules
+## Adjust Udev rules
 
 Edit /etc/udev/rules.d/30-busylight.rules:
 ```
