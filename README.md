@@ -13,7 +13,7 @@ _Note: Pyusb requires at least one of the three supported backends to be install
 If you're on a MAC you can install libusb via:
 
 ```
-        $ brew install libusb
+brew install libusb
 ```
 
 On Windows you can follow the info here.
@@ -22,7 +22,7 @@ On Windows you can follow the info here.
 On Ubuntu 16.04/18.04
 
 ```
-    sudo apt-get install libusb-1.0-0 """)
+sudo apt-get install libusb-1.0-0 """)
 ```
 
 ## Most Simple Use Case
